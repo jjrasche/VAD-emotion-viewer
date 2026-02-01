@@ -119,15 +119,28 @@
         <p style="margin-top: 4px; font-size: 10px; color: #666;">● Solid = empirical · ○ Wireframe = estimated</p>
     </div>
     <div id="legend">
-        <div>Valence Color Scale</div>
-        <div class="gradient"></div>
-        <div class="labels">
-            <span>Negative (-1)</span>
-            <span>Positive (+1)</span>
+        <div style="font-weight: 600; margin-bottom: 8px;">Dimensions</div>
+        <div style="font-size: 11px; line-height: 1.6; color: #ccc;">
+            <div style="margin-bottom: 6px;">
+                <strong style="color: #ff6666;">Valence</strong>: pleasant ↔ unpleasant<br>
+                <span style="font-size: 10px; color: #888;">How good or bad does this feel?</span>
+            </div>
+            <div style="margin-bottom: 6px;">
+                <strong style="color: #66ff66;">Arousal</strong>: deactivated ↔ activated<br>
+                <span style="font-size: 10px; color: #888;">How energized or sluggish? (not intensity)</span>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <strong style="color: #6666ff;">Dominance</strong>: powerless ↔ agentic<br>
+                <span style="font-size: 10px; color: #888;">Can I influence what happens? (not self-control)</span>
+            </div>
         </div>
-        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #aaa;">
-            <strong style="color: #6666ff;">Dominance</strong> = felt agency<br>
-            <span style="font-size: 10px; color: #777;">(can I influence what happens?)</span>
+        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 4px;">
+            <div style="font-size: 10px; color: #777; margin-bottom: 4px;">Valence → Color</div>
+            <div class="gradient"></div>
+            <div class="labels">
+                <span>Negative</span>
+                <span>Positive</span>
+            </div>
         </div>
     </div>
 
@@ -294,7 +307,7 @@
         // Labels: axis name, negative endpoint semantic, positive endpoint semantic
         createAxis(new THREE.Vector3(1, 0, 0), 0xff6666, 'Valence', 'Unpleasant', 'Pleasant');
         createAxis(new THREE.Vector3(0, 1, 0), 0x66ff66, 'Arousal', 'Deactivated', 'Activated');
-        createAxis(new THREE.Vector3(0, 0, 1), 0x6666ff, 'Dominance', 'Powerless', 'In Control');
+        createAxis(new THREE.Vector3(0, 0, 1), 0x6666ff, 'Dominance', 'Powerless', 'Agentic');
 
         // Add tick marks and values on axes
         function addAxisTicks(axis, color) {
@@ -343,23 +356,33 @@
 
         // Create emotion spheres
         const spheres = [];
-        const sphereGeometry = new THREE.SphereGeometry(0.06, 32, 32);
+        const sphereGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+        const wireframeGeometry = new THREE.SphereGeometry(0.06, 8, 6); // Fewer segments = visible wireframe
 
         Object.entries(emotions).forEach(([name, data]) => {
             const { coords, source } = data;
             const [valence, arousal, dominance] = coords;
             const color = valenceToColor(valence);
 
-            // Solid for empirical, wireframe for estimated
-            const material = source === "estimated"
-                ? new THREE.MeshBasicMaterial({ color: color, wireframe: true })
-                : new THREE.MeshPhongMaterial({
+            let sphere;
+            if (source === "estimated") {
+                // Wireframe sphere with fewer segments so lines are visible
+                const material = new THREE.MeshBasicMaterial({
+                    color: color,
+                    wireframe: true,
+                    wireframeLinewidth: 2
+                });
+                sphere = new THREE.Mesh(wireframeGeometry, material);
+            } else {
+                // Solid sphere for empirical data
+                const material = new THREE.MeshPhongMaterial({
                     color: color,
                     emissive: color.clone().multiplyScalar(0.3),
                     shininess: 50
                 });
+                sphere = new THREE.Mesh(sphereGeometry, material);
+            }
 
-            const sphere = new THREE.Mesh(sphereGeometry, material);
             sphere.position.set(valence * SCALE, arousal * SCALE, dominance * SCALE);
             sphere.userData = { name, coords, source };
             scene.add(sphere);
